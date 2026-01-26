@@ -6,6 +6,7 @@ const KEY = "c4laser_admin_products_v1";
 
 export function getProducts() {
   if (typeof window === "undefined") return seed;
+
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return seed;
@@ -15,3 +16,5 @@ export function getProducts() {
     return seed;
   }
 }
+
+export { KEY as PRODUCTS_KEY };

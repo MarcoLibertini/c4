@@ -1,25 +1,26 @@
 "use client";
 
 import { useState } from "react";
-
+import { useRouter } from "next/navigation";
 import { Search, HelpCircle, User, ShoppingCart } from "lucide-react";
 import CartDrawer from "./CartDrawer";
 import { useCart } from "../store/cart";
-import { useRouter } from "next/navigation";
-
+import useLanding from "../data/useLanding";
 
 export default function Header({ query, setQuery }) {
+  const router = useRouter();
   const [openCart, setOpenCart] = useState(false);
   const { count, hydrated } = useCart();
-  const router = useRouter();
-  
+
+  const { landing } = useLanding();
+
   return (
     <header className="w-full">
-      {/* Barra superior */}
+      {/* Barra superior (editable desde /admin/landing) */}
       <div className="bg-black text-white text-xs py-2">
         <div className="mx-auto max-w-6xl px-4 text-center">
-          3 y 6 CUOTAS SIN INTERÉS! 20% OFF TRANSFERENCIA - 3x2 y 4x3 etiquetas
-          y dijes
+          {landing?.topBarText ||
+            "3 y 6 CUOTAS SIN INTERÉS! 20% OFF TRANSFERENCIA - 3x2 y 4x3 etiquetas y dijes"}
         </div>
       </div>
 
@@ -35,12 +36,11 @@ export default function Header({ query, setQuery }) {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
-
               <Search className="h-5 w-5 text-neutral-700" />
             </div>
           </div>
 
-          {/* Logo (placeholder por ahora) */}
+          {/* Logo (placeholder) */}
           <div className="flex items-center justify-center">
             <div className="h-10 w-10 rounded-full bg-yellow-300 flex items-center justify-center font-bold text-black">
               C4
@@ -62,7 +62,6 @@ export default function Header({ query, setQuery }) {
               <span>Mi cuenta</span>
             </button>
 
-            {/* ABRIR CARRITO */}
             <button
               onClick={() => setOpenCart(true)}
               className="relative flex items-center gap-2 hover:opacity-80"
@@ -70,7 +69,6 @@ export default function Header({ query, setQuery }) {
               <ShoppingCart className="h-5 w-5" />
               <span>Mi carrito</span>
 
-              {/* badge dinámico */}
               {hydrated && count > 0 && (
                 <span className="absolute -top-2 -right-3 h-5 min-w-5 px-1 rounded-full bg-black text-white text-xs flex items-center justify-center">
                   {count}
@@ -81,27 +79,28 @@ export default function Header({ query, setQuery }) {
         </div>
       </div>
 
-      {/* Menú inferior */}
+      {/* Menú inferior (editable desde /admin/landing) */}
       <nav className="bg-white">
         <div className="mx-auto max-w-6xl px-4 py-4 flex gap-8 text-sm overflow-x-auto">
-          <a className="whitespace-nowrap hover:opacity-80 text-black" href="#">
-            Inicio
-          </a>
-          <a className="whitespace-nowrap hover:opacity-80 text-black" href="#">
-            Productos
-          </a>
-          <a className="whitespace-nowrap hover:opacity-80 text-black" href="#">
-            Contacto
-          </a>
-          <a className="whitespace-nowrap hover:opacity-80 text-black" href="#">
-            Preguntas Frecuentes
-          </a>
-          <a className="whitespace-nowrap hover:opacity-80 text-black" href="#">
-            Catálogo de Materiales
-          </a>
-          <a className="whitespace-nowrap hover:opacity-80 text-black" href="#">
-            Cómo Comprar
-          </a>
+          {(landing?.menuLinks?.length
+            ? landing.menuLinks
+            : [
+                { label: "Inicio", href: "#" },
+                { label: "Productos", href: "#productos" },
+                { label: "Contacto", href: "#contacto" },
+                { label: "Preguntas Frecuentes", href: "#faq" },
+                { label: "Catálogo de Materiales", href: "#materiales" },
+                { label: "Cómo Comprar", href: "#comprar" },
+              ]
+          ).map((l, idx) => (
+            <a
+              key={idx}
+              className="whitespace-nowrap hover:opacity-80 text-black"
+              href={l.href || "#"}
+            >
+              {l.label || "Link"}
+            </a>
+          ))}
         </div>
       </nav>
 
