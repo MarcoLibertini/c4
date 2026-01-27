@@ -16,8 +16,28 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: "C4 - Creaciones Láser",
-  description: "Cortes y grabados láser personalizados",
+  description:
+    "Cortes y grabados láser. Llaveros, cartelería, etiquetas, díjes y personalizados. Pedí por WhatsApp.",
+  metadataBase: new URL("https://TU-DOMINIO.com"), // luego lo cambiás
+  openGraph: {
+    title: "C4 - Creaciones Láser",
+    description:
+      "Cortes y grabados láser. Pedí por WhatsApp y coordinamos entrega.",
+    type: "website",
+  },
+  icons: {icon: [
+    { url: "/favicon.svg", type: "image/svg+xml" },
+    { url: "/favicon.png", type: "image/png" }, // fallback opcional
+  ],
+  },
+  openGraph: {
+    title: "C4 - Creaciones Láser",
+    description: "Cortes y grabados láser personalizados. Pedí por WhatsApp.",
+    images: ["/og.png"],
+    type: "website",
+  },
 };
+
 
 export default function RootLayout({ children }) {
   return (

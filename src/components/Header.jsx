@@ -6,6 +6,8 @@ import { Search, HelpCircle, User, ShoppingCart } from "lucide-react";
 import CartDrawer from "./CartDrawer";
 import { useCart } from "../store/cart";
 import useLanding from "../data/useLanding";
+import Image from "next/image";
+import Link from "next/link";
 
 export default function Header({ query, setQuery }) {
   const router = useRouter();
@@ -41,22 +43,27 @@ export default function Header({ query, setQuery }) {
           </div>
 
           {/* Logo (placeholder) */}
-          <div className="flex items-center justify-center">
-            <div className="h-10 w-10 rounded-full bg-yellow-300 flex items-center justify-center font-bold text-black">
-              C4
-            </div>
-          </div>
+          <Link href="/" className="flex items-center justify-center">
+            <Image
+              src="/logo-c4.svg"
+              alt="C4 Creaciones Láser"
+              width={40}
+              height={40}
+              className="object-contain cursor-pointer"
+              priority
+            />
+          </Link>
 
           {/* Botones derecha */}
           <div className="hidden sm:flex items-center gap-6 text-sm text-black">
-            <button className="flex items-center gap-2 hover:opacity-80">
+            <button className="flex items-center gap-2 hover:opacity-80 cursor-pointer">
               <HelpCircle className="h-5 w-5" />
               <span>Ayuda</span>
             </button>
 
             <button
               onClick={() => router.push("/admin")}
-              className="flex items-center gap-2 hover:opacity-80"
+              className="flex items-center gap-2 hover:opacity-80 cursor-pointer"
             >
               <User className="h-5 w-5" />
               <span>Mi cuenta</span>
@@ -64,7 +71,7 @@ export default function Header({ query, setQuery }) {
 
             <button
               onClick={() => setOpenCart(true)}
-              className="relative flex items-center gap-2 hover:opacity-80"
+              className="relative flex items-center gap-2 hover:opacity-80 cursor-pointer"
             >
               <ShoppingCart className="h-5 w-5" />
               <span>Mi carrito</span>

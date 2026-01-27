@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 export default function WhatsAppFloat() {
   const phone = "5492916439736";
   const text = "Hola! Quiero hacer una consulta.";
@@ -12,8 +14,7 @@ export default function WhatsAppFloat() {
       aria-label="WhatsApp"
       className="
         fixed bottom-5 right-5 z-50
-        h-14 w-14
-        rounded-full
+        h-14 w-14 rounded-full
         bg-[#25D366]
         flex items-center justify-center
         shadow-lg
@@ -21,14 +22,14 @@ export default function WhatsAppFloat() {
         transition
       "
     >
-      {/* Ícono oficial WhatsApp */}
-      <svg
-        viewBox="0 0 32 32"
-        className="h-7 w-7 fill-white"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path d="M16.001 3.2c-7.07 0-12.8 5.73-12.8 12.8 0 2.256.592 4.384 1.728 6.256L3.2 28.8l6.72-1.696A12.736 12.736 0 0 0 16 28.8c7.072 0 12.8-5.73 12.8-12.8S23.073 3.2 16.001 3.2zm0 22.4a9.56 9.56 0 0 1-4.896-1.344l-.352-.192-3.968 1.024 1.056-3.872-.224-.384A9.537 9.537 0 1 1 16 25.6zm5.504-7.232c-.288-.144-1.728-.848-1.984-.944-.256-.096-.448-.144-.64.144-.192.288-.736.944-.896 1.136-.16.192-.32.224-.608.08-.288-.144-1.216-.448-2.304-1.424-.848-.752-1.424-1.68-1.6-1.968-.176-.288-.016-.448.128-.592.128-.128.288-.32.448-.48.16-.16.208-.288.32-.48.112-.192.064-.352-.016-.496-.08-.144-.64-1.536-.88-2.112-.224-.544-.448-.48-.64-.48-.16 0-.352 0-.544 0s-.496.064-.752.352c-.256.288-.992.976-.992 2.384 0 1.408 1.024 2.768 1.168 2.96.144.192 2.016 3.072 4.88 4.304.688.304 1.216.496 1.632.64.688.224 1.312.192 1.808.112.544-.08 1.728-.704 1.968-1.376.24-.672.24-1.248.176-1.376-.064-.128-.24-.192-.528-.336z"/>
-      </svg>
+      <Image
+        src="/c4-mark-white.svg"
+        alt="C4"
+        width={26}
+        height={26}
+        className="object-contain"
+        priority
+      />
     </a>
   );
 }

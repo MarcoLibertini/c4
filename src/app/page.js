@@ -6,7 +6,9 @@ import ProductsSection from "../components/ProductsSection";
 import WhatsAppFloat from "../components/WhatsAppFloat";
 import Footer from "@/components/Footer";
 import BannerCarousel from "@/components/BannerCarousel";
-
+import HowToBuySection from "@/components/HowToBuySection";
+import FAQSection from "@/components/FAQSection";
+import ContactSection from "@/components/ContactSection";
 
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -17,6 +19,9 @@ export default function Home() {
       <BannerCarousel />
 
       <ProductsSection query={query} />
+      <HowToBuySection />
+      <FAQSection />
+      <ContactSection />
       <Footer />
       <WhatsAppFloat />
     </div>
