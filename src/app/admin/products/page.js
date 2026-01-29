@@ -2,27 +2,85 @@
 
 import { useEffect, useState } from "react";
 import { products as seedProducts } from "../../../data/products";
-
-const KEY = "c4laser_admin_products_v1";
+import { useAdminAuth } from "../_auth";
+import { supabase } from "@/lib/supabase";
 
 export default function AdminProductsPage() {
+  const { logged, LoginForm } = useAdminAuth();
+
   const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // --- Helpers: UI <-> DB
+  const toDb = (p) => ({
+    id: p.id,
+    name: p.name,
+    image_url: p.imageUrl,
+    discount_percent: Number(p.discountPercent ?? 0),
+    price_old:
+      p.priceOld === "" || p.priceOld == null ? null : Number(p.priceOld),
+    price_now: Number(p.priceNow ?? 0),
+    transfer_price: Number(p.transferPrice ?? 0),
+    installments_count: Number(p.installments?.count ?? 3),
+    installments_amount: Number(p.installments?.amount ?? 0),
+  });
+
+  const fromDb = (p) => ({
+    id: p.id,
+    name: p.name ?? "",
+    imageUrl: p.image_url ?? "",
+    discountPercent: p.discount_percent ?? 0,
+    priceOld: p.price_old,
+    priceNow: p.price_now ?? 0,
+    transferPrice: p.transfer_price ?? 0,
+    installments: {
+      count: p.installments_count ?? 3,
+      amount: p.installments_amount ?? 0,
+    },
+  });
+
+  const load = async () => {
+    setLoading(true);
+    const { data, error } = await supabase.from("products").select("*");
+    if (error) {
+      console.error("Supabase load error:", error);
+      alert("Error cargando productos (mirá la consola).");
+      setLoading(false);
+      return;
+    }
+    setItems((data || []).map(fromDb));
+    setLoading(false);
+  };
 
   useEffect(() => {
-    const raw = localStorage.getItem(KEY);
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) return setItems(parsed);
-      } catch {}
-    }
-    setItems(seedProducts);
-  }, []);
+    if (!logged) return;
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [logged]);
 
-  const save = () => {
-    localStorage.setItem(KEY, JSON.stringify(items));
-    window.dispatchEvent(new Event("c4laser-products-updated"));
+  const save = async () => {
+    const payload = items.map(toDb);
+
+    const res = await fetch("/api/admin/products", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-user": "Marco138",
+        "x-admin-pass": "c4energia",
+      },
+      body: JSON.stringify({ items: payload }),
+    });
+
+    const out = await res.json();
+
+    if (!res.ok) {
+      console.error("API save error:", out);
+      alert("Error guardando ❌ (mirá consola)");
+      return;
+    }
+
     alert("Guardado ✅");
+    window.dispatchEvent(new Event("c4laser-products-updated"));
   };
 
   const update = (id, patch) => {
@@ -40,14 +98,13 @@ export default function AdminProductsPage() {
             },
           };
         }
-
         return { ...it, ...patch };
       })
     );
   };
 
   const addProduct = () => {
-    const id = `prod-${Date.now()}`;
+    const id = globalThis.crypto?.randomUUID?.() || `prod-${Date.now()}`;
     setItems((prev) => [
       {
         id,
@@ -63,24 +120,95 @@ export default function AdminProductsPage() {
     ]);
   };
 
-  const removeProduct = (id) => {
+  const removeProduct = async (id) => {
     if (!confirm("¿Eliminar producto?")) return;
-    setItems((prev) => prev.filter((x) => x.id !== id));
-  };
 
-  const restoreBase = () => {
-    if (!confirm("¿Restaurar productos base? Se perderán cambios.")) return;
-    setItems(seedProducts);
-    localStorage.removeItem(KEY);
+    const res = await fetch("/api/admin/products", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-user": "Marco138",
+        "x-admin-pass": "c4energia",
+      },
+      body: JSON.stringify({ id }),
+    });
+
+    const out = await res.json();
+
+    if (!res.ok) {
+      console.error("API delete error:", out);
+      alert("Error eliminando ❌ (mirá consola)");
+      return;
+    }
+
+    setItems((prev) => prev.filter((x) => x.id !== id));
     window.dispatchEvent(new Event("c4laser-products-updated"));
   };
+  //agrego el subir imagen
+  const uploadImage = async (file) => {
+    const form = new FormData();
+    form.append("file", file);
+
+    const res = await fetch("/api/admin/upload", {
+      method: "POST",
+      headers: {
+        "x-admin-user": "Marco138",
+        "x-admin-pass": "c4energia",
+      },
+      body: form,
+    });
+
+    const out = await res.json();
+
+    if (!res.ok) {
+      console.error("Upload error:", out);
+      alert("Error subiendo imagen ❌ (mirá consola)");
+      return null;
+    }
+
+    return out.url;
+  };
+
+  const restoreBase = async () => {
+    if (!confirm("¿Restaurar productos base? Esto reemplaza/crea por ID."))
+      return;
+
+    // Ojo: si tus seedProducts no tienen id únicos, agregalos.
+    const base = seedProducts.map((p) => ({
+      ...p,
+      id:
+        p.id ||
+        globalThis.crypto?.randomUUID?.() ||
+        `seed-${Date.now()}-${Math.random()}`,
+    }));
+
+    const payload = base.map(toDb);
+
+    const { error } = await supabase
+      .from("products")
+      .upsert(payload, { onConflict: "id" });
+
+    if (error) {
+      console.error("Supabase restore error:", error);
+      alert("Error restaurando base (mirá la consola).");
+      return;
+    }
+
+    alert("Base restaurada ✅");
+    await load();
+    window.dispatchEvent(new Event("c4laser-products-updated"));
+  };
+
+  if (!logged) return <LoginForm />;
 
   return (
     <div className="text-black">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h2 className="text-2xl font-semibold">Productos</h2>
-          <p className="text-sm text-black/70">Editá y guardá.</p>
+          <p className="text-sm text-black/70">
+            {loading ? "Cargando..." : "Editá y guardá en Supabase."}
+          </p>
         </div>
 
         <div className="flex gap-2 flex-wrap justify-end">
@@ -114,7 +242,9 @@ export default function AdminProductsPage() {
               <div className="flex-1">
                 <div className="text-xs text-black/60">ID: {it.id}</div>
 
-                <label className="block mt-3 text-sm font-semibold">Nombre</label>
+                <label className="block mt-3 text-sm font-semibold">
+                  Nombre
+                </label>
                 <input
                   className="w-full border rounded-xl px-4 py-3 outline-none"
                   value={it.name}
@@ -133,9 +263,7 @@ export default function AdminProductsPage() {
                     label="Precio viejo"
                     value={it.priceOld ?? ""}
                     onChange={(v) =>
-                      update(it.id, {
-                        priceOld: v === "" ? null : Number(v),
-                      })
+                      update(it.id, { priceOld: v === "" ? null : Number(v) })
                     }
                   />
                   <Field
@@ -153,11 +281,42 @@ export default function AdminProductsPage() {
                 </div>
 
                 <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  <Field
-                    label="Imagen (URL)"
-                    value={it.imageUrl ?? ""}
-                    onChange={(v) => update(it.id, { imageUrl: v })}
-                  />
+                  <div>
+                    <label className="block text-sm font-semibold">
+                      Imagen
+                    </label>
+
+                    <div className="mt-2 flex flex-col gap-2">
+                      <input
+                        className="w-full border rounded-xl px-4 py-3 outline-none"
+                        value={it.imageUrl ?? ""}
+                        onChange={(e) =>
+                          update(it.id, { imageUrl: e.target.value })
+                        }
+                        placeholder="URL o subí una imagen"
+                      />
+
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+
+                            const url = await uploadImage(file);
+                            if (url) update(it.id, { imageUrl: url });
+
+                            e.currentTarget.value = "";
+                          }}
+                        />
+
+                        <span className="text-xs text-black/60">
+                          PNG/JPG/WEBP
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                   <Field
                     label="Cuotas (cantidad)"
                     value={it.installments?.count ?? 3}
@@ -184,6 +343,12 @@ export default function AdminProductsPage() {
             </div>
           </div>
         ))}
+
+        {!loading && items.length === 0 && (
+          <div className="text-sm text-black/70">
+            No hay productos. Tocá “+ Producto” o “Restaurar base”.
+          </div>
+        )}
       </div>
     </div>
   );

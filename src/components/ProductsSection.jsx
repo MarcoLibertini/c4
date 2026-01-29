@@ -1,34 +1,39 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import ProductCard from "./ProductCard";
 import { getProducts } from "../data/getProducts";
+import { useEffect, useMemo, useState } from "react";
 import { useCart } from "../store/cart";
 
 export default function ProductsSection({ query = "" }) {
   const { add } = useCart();
 
   const [products, setProducts] = useState([]);
-
-  // cargar productos desde admin/localStorage
-  useEffect(() => {
-    const load = () => setProducts(getProducts());
-    load();
-  
-    window.addEventListener("c4laser_products_updated", load);
-    return () => window.removeEventListener("c4laser_products_updated", load);
-  }, []);
-  
+  const [loading, setLoading] = useState(true);
 
   const q = query.trim().toLowerCase();
 
-  // filtrar productos
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      setLoading(true);
+      const list = await getProducts();
+      if (alive) {
+        setProducts(list);
+        setLoading(false);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const filtered = useMemo(() => {
     if (!Array.isArray(products)) return [];
     if (!q) return products;
-    return products.filter((p) =>
-      p.name.toLowerCase().includes(q)
-    );
+    return products.filter((p) => p.name.toLowerCase().includes(q));
   }, [products, q]);
 
   return (
@@ -47,15 +52,15 @@ export default function ProductsSection({ query = "" }) {
       <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center">
         {filtered.length > 0 ? (
           filtered.map((p) => (
-            <ProductCard
-              key={p.id}
-              product={p}
-              onAdd={() => add(p)}
-            />
+            <ProductCard key={p.id} product={p} onAdd={() => add(p)} />
           ))
         ) : (
           <div className="col-span-full text-center text-sm text-black/70 py-10">
-            No encontramos productos con ese nombre.
+            {loading
+              ? "Cargando productos..."
+              : q
+              ? "No encontramos productos con ese nombre."
+              : "No hay productos cargados."}
           </div>
         )}
       </div>

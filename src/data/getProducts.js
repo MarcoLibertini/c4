@@ -1,20 +1,28 @@
-"use client";
+import { supabase } from "@/lib/supabase";
 
-import { products as seed } from "./products";
+export async function getProducts() {
+  const { data, error } = await supabase
+    .from("products")
+    .select("*")
+    .order("name");
 
-const KEY = "c4laser_admin_products_v1";
-
-export function getProducts() {
-  if (typeof window === "undefined") return seed;
-
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return seed;
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : seed;
-  } catch {
-    return seed;
+  if (error) {
+    console.error("Supabase error:", error);
+    return [];
   }
-}
 
-export { KEY as PRODUCTS_KEY };
+  // 🔁 mapeo snake_case → camelCase
+  return data.map((p) => ({
+    id: p.id,
+    name: p.name,
+    imageUrl: p.image_url,
+    discountPercent: p.discount_percent,
+    priceOld: p.price_old,
+    priceNow: p.price_now,
+    transferPrice: p.transfer_price,
+    installments: {
+      count: p.installments_count,
+      amount: p.installments_amount,
+    },
+  }));
+}
