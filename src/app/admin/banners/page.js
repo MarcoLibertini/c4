@@ -1,49 +1,138 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import useBanners from "../../../data/useBanners";
+import { supabase } from "@/lib/supabase";
+import { useAdminAuth } from "../_auth";
 
 export default function AdminBannersPage() {
-  const { banners, save } = useBanners();
-  const [draft, setDraft] = useState(banners);
+  const { logged, LoginForm } = useAdminAuth();
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => setDraft(banners), [banners]);
+  const load = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("banners")
+      .select("*")
+      .order("sort_order", { ascending: true });
 
-  const update = (id, patch) => {
-    setDraft((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)));
+    if (error) {
+      console.error(error);
+      alert("Error cargando banners (mirá consola)");
+      setLoading(false);
+      return;
+    }
+
+    setItems(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (!logged) return;
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [logged]);
+
+  const uploadBanner = async (file) => {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("bucket", "banners");
+
+    const res = await fetch("/api/admin/upload", {
+      method: "POST",
+      headers: {
+        "x-admin-user": "Marco138",
+        "x-admin-pass": "c4energia",
+      },
+      body: form,
+    });
+
+    const out = await res.json();
+    if (!res.ok) {
+      console.error("Upload error:", out);
+      alert("Error subiendo imagen ❌");
+      return null;
+    }
+    return out.url;
   };
 
   const add = () => {
-    const id = `b-${Date.now()}`;
-    setDraft((prev) => [
+    const id = globalThis.crypto?.randomUUID?.() || `banner-${Date.now()}`;
+    setItems((prev) => [
       {
         id,
-        title: "Nuevo banner",
-        subtitle: "",
-        imageUrl: "/banners/banner.jpg",
-        ctaLabel: "Ver más",
-        ctaHref: "#productos",
+        title: "",
+        image_url: "",
+        link_url: "",
+        sort_order: prev.length,
+        is_active: true,
       },
       ...prev,
     ]);
   };
 
-  const remove = (id) => {
-    if (!confirm("¿Eliminar banner?")) return;
-    setDraft((prev) => prev.filter((b) => b.id !== id));
+  const update = (id, patch) => {
+    setItems((prev) => prev.map((x) => (x.id === id ? { ...x, ...patch } : x)));
   };
+
+  const save = async () => {
+    const res = await fetch("/api/admin/banners", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-user": "Marco138",
+        "x-admin-pass": "c4energia",
+      },
+      body: JSON.stringify({ items }),
+    });
+
+    const out = await res.json();
+    if (!res.ok) {
+      console.error("Save error:", out);
+      alert("Error guardando ❌ (mirá consola)");
+      return;
+    }
+
+    alert("Guardado ✅");
+    await load();
+  };
+
+  const remove = async (id) => {
+    if (!confirm("¿Eliminar banner?")) return;
+
+    const res = await fetch("/api/admin/banners", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-user": "Marco138",
+        "x-admin-pass": "c4energia",
+      },
+      body: JSON.stringify({ id }),
+    });
+
+    const out = await res.json();
+    if (!res.ok) {
+      console.error("Delete error:", out);
+      alert("Error eliminando ❌ (mirá consola)");
+      return;
+    }
+
+    setItems((prev) => prev.filter((x) => x.id !== id));
+  };
+
+  if (!logged) return <LoginForm />;
 
   return (
     <div className="text-black">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h2 className="text-2xl font-semibold">Carrusel / Banner</h2>
+          <h2 className="text-2xl font-semibold">Banners</h2>
           <p className="text-sm text-black/70">
-            Editá los slides del banner debajo del header.
+            {loading ? "Cargando..." : "Carrusel debajo del header."}
           </p>
         </div>
 
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap justify-end">
           <button
             onClick={add}
             className="rounded-xl border px-4 py-3 text-sm font-semibold hover:bg-black/5"
@@ -51,10 +140,7 @@ export default function AdminBannersPage() {
             + Banner
           </button>
           <button
-            onClick={() => {
-              save(draft);
-              alert("Guardado ✅");
-            }}
+            onClick={save}
             className="rounded-xl bg-black text-white px-4 py-3 text-sm font-semibold hover:opacity-90"
           >
             Guardar
@@ -63,49 +149,87 @@ export default function AdminBannersPage() {
       </div>
 
       <div className="mt-6 space-y-3">
-        {draft.map((b) => (
-          <div key={b.id} className="border rounded-2xl p-4">
+        {items.map((it) => (
+          <div key={it.id} className="border rounded-2xl p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1">
-                <div className="text-xs text-black/60">ID: {b.id}</div>
+                <div className="text-xs text-black/60">ID: {it.id}</div>
 
-                <Field
-                  label="Título"
-                  value={b.title || ""}
-                  onChange={(v) => update(b.id, { title: v })}
-                />
-                <Field
-                  label="Subtítulo"
-                  value={b.subtitle || ""}
-                  onChange={(v) => update(b.id, { subtitle: v })}
-                />
-                <Field
-                  label="Imagen (URL)"
-                  value={b.imageUrl || ""}
-                  onChange={(v) => update(b.id, { imageUrl: v })}
-                />
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-semibold">Título (opcional)</label>
+                    <input
+                      className="w-full border rounded-xl px-4 py-3 outline-none"
+                      value={it.title ?? ""}
+                      onChange={(e) => update(it.id, { title: e.target.value })}
+                    />
+                  </div>
 
-                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <Field
-                    label="Texto botón (CTA)"
-                    value={b.ctaLabel || ""}
-                    onChange={(v) => update(b.id, { ctaLabel: v })}
-                  />
-                  <Field
-                    label="Link botón (CTA href)"
-                    value={b.ctaHref || ""}
-                    onChange={(v) => update(b.id, { ctaHref: v })}
-                  />
+                  <div>
+                    <label className="block text-sm font-semibold">Link (opcional)</label>
+                    <input
+                      className="w-full border rounded-xl px-4 py-3 outline-none"
+                      value={it.link_url ?? ""}
+                      onChange={(e) => update(it.id, { link_url: e.target.value })}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold">Orden (0 = primero)</label>
+                    <input
+                      type="number"
+                      className="w-full border rounded-xl px-4 py-3 outline-none"
+                      value={it.sort_order ?? 0}
+                      onChange={(e) => update(it.id, { sort_order: Number(e.target.value) })}
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm font-semibold">Activo</label>
+                    <input
+                      type="checkbox"
+                      checked={!!it.is_active}
+                      onChange={(e) => update(it.id, { is_active: e.target.checked })}
+                    />
+                  </div>
                 </div>
 
-                <div className="mt-3 text-xs text-black/60">
-                  Tip: para WhatsApp poné un link tipo{" "}
-                  <span className="font-semibold">https://wa.me/5492916439736</span>
+                <div className="mt-3">
+                  <label className="block text-sm font-semibold">Imagen</label>
+                  <div className="mt-2 flex flex-col gap-2">
+                    <input
+                      className="w-full border rounded-xl px-4 py-3 outline-none"
+                      value={it.image_url ?? ""}
+                      onChange={(e) => update(it.id, { image_url: e.target.value })}
+                      placeholder="URL o subí una imagen"
+                    />
+
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const url = await uploadBanner(file);
+                        if (url) update(it.id, { image_url: url });
+                        e.currentTarget.value = "";
+                      }}
+                    />
+
+                    {!!it.image_url && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={it.image_url}
+                        alt="banner"
+                        className="mt-2 w-full max-w-xl rounded-xl border object-cover"
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
 
               <button
-                onClick={() => remove(b.id)}
+                onClick={() => remove(it.id)}
                 className="text-sm font-semibold underline hover:opacity-80"
               >
                 Eliminar
@@ -113,20 +237,11 @@ export default function AdminBannersPage() {
             </div>
           </div>
         ))}
-      </div>
-    </div>
-  );
-}
 
-function Field({ label, value, onChange }) {
-  return (
-    <div className="mt-3">
-      <label className="block text-sm font-semibold">{label}</label>
-      <input
-        className="w-full border rounded-xl px-4 py-3 outline-none"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      />
+        {!loading && items.length === 0 && (
+          <div className="text-sm text-black/70">No hay banners todavía.</div>
+        )}
+      </div>
     </div>
   );
 }
