@@ -1,45 +1,38 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { bannerDefaults } from "./bannerDefaults";
-
-const KEY = "c4laser_banners_v1";
+import { supabase } from "@/lib/supabase";
 
 export default function useBanners() {
-  const [banners, setBanners] = useState(bannerDefaults);
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const raw = localStorage.getItem(KEY);
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) setBanners(parsed);
-      } catch {
-        setBanners(bannerDefaults);
-      }
+  const load = async () => {
+    setLoading(true);
+
+    const { data, error } = await supabase
+      .from("banners")
+      .select("*")
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true });
+
+    if (error) {
+      console.error("Supabase banners error:", error);
+      setItems([]);
+    } else {
+      // ✅ evita banners sin imagen
+      setItems((data || []).filter((b) => !!b.image_url));
     }
 
-    const onUpdate = () => {
-      const raw2 = localStorage.getItem(KEY);
-      if (!raw2) return setBanners(bannerDefaults);
-      try {
-        const parsed2 = JSON.parse(raw2);
-        if (Array.isArray(parsed2)) setBanners(parsed2);
-      } catch {
-        setBanners(bannerDefaults);
-      }
-    };
-
-    window.addEventListener("c4laser_banners_updated", onUpdate);
-    return () =>
-      window.removeEventListener("c4laser_banners_updated", onUpdate);
-  }, []);
-
-  const save = (next) => {
-    localStorage.setItem(KEY, JSON.stringify(next));
-    window.dispatchEvent(new Event("c4laser_banners_updated"));
-    setBanners(next);
+    setLoading(false);
   };
 
-  return { banners, save };
+  useEffect(() => {
+    load();
+    const onSync = () => load();
+    window.addEventListener("c4laser-banners-updated", onSync);
+    return () => window.removeEventListener("c4laser-banners-updated", onSync);
+  }, []);
+
+  return { items, loading, reload: load };
 }

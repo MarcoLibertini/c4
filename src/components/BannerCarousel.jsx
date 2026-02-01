@@ -1,110 +1,110 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import useBanners from "../data/useBanners";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import useBanners from "@/data/useBanners";
 
 export default function BannerCarousel() {
-  const { banners } = useBanners();
-  const slides = useMemo(() => (Array.isArray(banners) ? banners : []), [banners]);
-  const [i, setI] = useState(0);
+  const { items, loading } = useBanners();
+  const banners = useMemo(() => (Array.isArray(items) ? items : []), [items]);
 
+  const [idx, setIdx] = useState(0);
+  const timerRef = useRef(null);
+
+  // Reiniciar índice si cambian banners
   useEffect(() => {
-    if (slides.length <= 1) return;
-    const t = setInterval(() => setI((p) => (p + 1) % slides.length), 4500);
-    return () => clearInterval(t);
-  }, [slides.length]);
+    setIdx(0);
+  }, [banners.length]);
 
+  // Auto-play
   useEffect(() => {
-    if (i > slides.length - 1) setI(0);
-  }, [slides.length, i]);
+    if (!banners.length) return;
 
-  if (!slides.length) return null;
+    // limpiar antes
+    if (timerRef.current) clearInterval(timerRef.current);
 
-  const current = slides[i];
+    timerRef.current = setInterval(() => {
+      setIdx((prev) => (prev + 1) % banners.length);
+    }, 4500); // 4.5s
 
-  const prev = () => setI((p) => (p - 1 + slides.length) % slides.length);
-  const next = () => setI((p) => (p + 1) % slides.length);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [banners.length]);
+
+  const prev = () => setIdx((i) => (i - 1 + banners.length) % banners.length);
+  const next = () => setIdx((i) => (i + 1) % banners.length);
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 mt-6">
+        <div className="h-[220px] rounded-2xl bg-neutral-100 border" />
+      </div>
+    );
+  }
+
+  if (!banners.length) return null;
+
+  const b = banners[idx];
 
   return (
-    <section className="bg-white border-b">
-      <div className="mx-auto max-w-6xl px-4 py-6">
-        <div className="relative overflow-hidden rounded-2xl border bg-white">
-          {/* Imagen */}
-          <div className="relative h-[180px] sm:h-[220px] md:h-[260px] bg-neutral-100">
+    <div className="mx-auto max-w-6xl px-4 mt-6">
+      <div className="relative overflow-hidden rounded-2xl border bg-neutral-100">
+        {/* Si hay link_url, que sea clickeable */}
+        {b.link_url ? (
+          <a href={b.link_url} target="_blank" rel="noreferrer">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={current.imageUrl}
-              alt={current.title}
-              className="h-full w-full object-cover"
-              onError={(e) => {
-                e.currentTarget.src =
-                  "https://via.placeholder.com/1600x600.png?text=C4+LASER+Banner";
-              }}
+              src={b.image_url}
+              alt={b.title || "Banner"}
+              className="w-full h-[220px] sm:h-[260px] object-cover"
+              draggable={false}
             />
-            <div className="absolute inset-0 bg-black/40" />
-          </div>
+          </a>
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={b.image_url}
+            alt={b.title || "Banner"}
+            className="w-full h-[220px] sm:h-[260px] object-cover"
+            draggable={false}
+          />
+        )}
 
-          {/* Texto */}
-          <div className="absolute inset-0 flex items-center">
-            <div className="px-5 sm:px-10 text-white max-w-2xl">
-              <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold">
-                {current.title}
-              </h2>
-              {current.subtitle ? (
-                <p className="mt-2 text-sm sm:text-base text-white/90">
-                  {current.subtitle}
-                </p>
-              ) : null}
+        {/* Botones */}
+        {banners.length > 1 && (
+          <>
+            <button
+              onClick={prev}
+              aria-label="Anterior"
+              className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/90 border hover:bg-white transition flex items-center justify-center"
+            >
+              ‹
+            </button>
 
-              {current.ctaLabel && current.ctaHref ? (
-                <a
-                  href={current.ctaHref}
-                  target={current.ctaHref.startsWith("http") ? "_blank" : undefined}
-                  rel={current.ctaHref.startsWith("http") ? "noreferrer" : undefined}
-                  className="mt-4 inline-flex rounded-xl bg-white text-black px-4 py-3 text-sm font-semibold hover:opacity-90"
-                >
-                  {current.ctaLabel}
-                </a>
-              ) : null}
+            <button
+              onClick={next}
+              aria-label="Siguiente"
+              className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/90 border hover:bg-white transition flex items-center justify-center"
+            >
+              ›
+            </button>
+
+            {/* Dots */}
+            <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2">
+              {banners.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setIdx(i)}
+                  aria-label={`Ir al banner ${i + 1}`}
+                  className={`h-2.5 w-2.5 rounded-full border ${
+                    i === idx ? "bg-black" : "bg-white/80"
+                  }`}
+                />
+              ))}
             </div>
-          </div>
-
-          {/* Controles */}
-          {slides.length > 1 ? (
-            <>
-              <button
-                onClick={prev}
-                className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/90 flex items-center justify-center hover:opacity-90"
-                aria-label="Anterior"
-              >
-                <ChevronLeft className="h-5 w-5 text-black" />
-              </button>
-
-              <button
-                onClick={next}
-                className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/90 flex items-center justify-center hover:opacity-90"
-                aria-label="Siguiente"
-              >
-                <ChevronRight className="h-5 w-5 text-black" />
-              </button>
-
-              <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2">
-                {slides.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setI(idx)}
-                    className={`h-2 w-2 rounded-full ${
-                      idx === i ? "bg-white" : "bg-white/50"
-                    }`}
-                    aria-label={`Slide ${idx + 1}`}
-                  />
-                ))}
-              </div>
-            </>
-          ) : null}
-        </div>
+          </>
+        )}
       </div>
-    </section>
+    </div>
   );
 }

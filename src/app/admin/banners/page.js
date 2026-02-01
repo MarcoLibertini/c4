@@ -48,12 +48,14 @@ export default function AdminBannersPage() {
     });
 
     const out = await res.json();
-    if (!res.ok) {
-      console.error("Upload error:", out);
-      alert("Error subiendo imagen ❌");
+
+    const url = out?.url || out?.publicUrl || out?.public_url;
+    if (!url) {
+      console.error("Upload response sin URL:", out);
+      alert("Subió el archivo pero no recibí la URL. Revisá /api/admin/upload");
       return null;
     }
-    return out.url;
+    return url;
   };
 
   const add = () => {
@@ -85,6 +87,11 @@ export default function AdminBannersPage() {
       },
       body: JSON.stringify({ items }),
     });
+    const invalid = items.find((b) => !b.image_url);
+    if (invalid) {
+      alert("Hay banners sin imagen. Subí la imagen o eliminá ese banner.");
+      return;
+    }
 
     const out = await res.json();
     if (!res.ok) {
@@ -94,6 +101,8 @@ export default function AdminBannersPage() {
     }
 
     alert("Guardado ✅");
+    window.dispatchEvent(new Event("c4laser-banners-updated"));
+
     await load();
   };
 
@@ -157,7 +166,9 @@ export default function AdminBannersPage() {
 
                 <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-semibold">Título (opcional)</label>
+                    <label className="block text-sm font-semibold">
+                      Título (opcional)
+                    </label>
                     <input
                       className="w-full border rounded-xl px-4 py-3 outline-none"
                       value={it.title ?? ""}
@@ -166,21 +177,29 @@ export default function AdminBannersPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold">Link (opcional)</label>
+                    <label className="block text-sm font-semibold">
+                      Link (opcional)
+                    </label>
                     <input
                       className="w-full border rounded-xl px-4 py-3 outline-none"
                       value={it.link_url ?? ""}
-                      onChange={(e) => update(it.id, { link_url: e.target.value })}
+                      onChange={(e) =>
+                        update(it.id, { link_url: e.target.value })
+                      }
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold">Orden (0 = primero)</label>
+                    <label className="block text-sm font-semibold">
+                      Orden (0 = primero)
+                    </label>
                     <input
                       type="number"
                       className="w-full border rounded-xl px-4 py-3 outline-none"
                       value={it.sort_order ?? 0}
-                      onChange={(e) => update(it.id, { sort_order: Number(e.target.value) })}
+                      onChange={(e) =>
+                        update(it.id, { sort_order: Number(e.target.value) })
+                      }
                     />
                   </div>
 
@@ -189,7 +208,9 @@ export default function AdminBannersPage() {
                     <input
                       type="checkbox"
                       checked={!!it.is_active}
-                      onChange={(e) => update(it.id, { is_active: e.target.checked })}
+                      onChange={(e) =>
+                        update(it.id, { is_active: e.target.checked })
+                      }
                     />
                   </div>
                 </div>
@@ -200,7 +221,9 @@ export default function AdminBannersPage() {
                     <input
                       className="w-full border rounded-xl px-4 py-3 outline-none"
                       value={it.image_url ?? ""}
-                      onChange={(e) => update(it.id, { image_url: e.target.value })}
+                      onChange={(e) =>
+                        update(it.id, { image_url: e.target.value })
+                      }
                       placeholder="URL o subí una imagen"
                     />
 
@@ -208,11 +231,14 @@ export default function AdminBannersPage() {
                       type="file"
                       accept="image/png,image/jpeg,image/webp"
                       onChange={async (e) => {
-                        const file = e.target.files?.[0];
+                        const input = e.currentTarget; // ✅ guardo referencia estable
+                        const file = input.files?.[0];
                         if (!file) return;
+
                         const url = await uploadBanner(file);
                         if (url) update(it.id, { image_url: url });
-                        e.currentTarget.value = "";
+
+                        input.value = ""; // ✅ reset sin romper
                       }}
                     />
 
