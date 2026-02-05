@@ -2,51 +2,73 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import useAdminSession from "../_session";
-
-const USERS = [{ user: "Marco138", pass: "c4energia" }];
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const { login } = useAdminSession();
+  const [user, setUser] = useState("");
+  const [pass, setPass] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const [u, setU] = useState("");
-  const [p, setP] = useState("");
-
-  const onSubmit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-    const ok = USERS.some((x) => x.user === u && x.pass === p);
-    if (!ok) return alert("Usuario o contraseña incorrectos");
+    if (loading) return;
 
-    login();
-    router.replace("/admin/products");
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user, pass }),
+      });
+
+      if (!res.ok) {
+        const out = await res.json().catch(() => ({}));
+        alert(out?.error || "Usuario o contraseña incorrectos");
+        setLoading(false);
+        return;
+      }
+
+      // ✅ hard reload para que middleware vea cookie sí o sí
+      window.location.href = "/admin";
+    } catch (err) {
+      console.error(err);
+      alert("Error de red. Probá de nuevo.");
+      setLoading(false);
+    }
   };
 
   return (
-    <form onSubmit={onSubmit} className="w-full border rounded-2xl p-6">
-      <h2 className="text-lg font-semibold">Ingresar</h2>
-      <p className="text-sm text-black/70 mt-1">Acceso administrador</p>
+    <div className="min-h-screen bg-white text-black flex items-center justify-center p-4">
+      <form onSubmit={submit} className="w-full max-w-sm border rounded-2xl p-6">
+        <h1 className="text-xl font-semibold">Admin C4 LASER</h1>
+        <p className="text-sm text-black/70 mt-1">Acceso de administrador</p>
 
-      <div className="mt-5 space-y-3">
-        <input
-          className="w-full border rounded-xl px-4 py-3 outline-none"
-          placeholder="Usuario"
-          value={u}
-          onChange={(e) => setU(e.target.value)}
-          autoComplete="username"
-        />
-        <input
-          className="w-full border rounded-xl px-4 py-3 outline-none"
-          placeholder="Contraseña"
-          type="password"
-          value={p}
-          onChange={(e) => setP(e.target.value)}
-          autoComplete="current-password"
-        />
-        <button className="w-full rounded-xl bg-black text-white py-3 font-semibold hover:opacity-90">
-          Entrar
-        </button>
-      </div>
-    </form>
+        <div className="mt-6 space-y-3">
+          <input
+            className="w-full border rounded-xl px-4 py-3 outline-none"
+            placeholder="Usuario"
+            value={user}
+            onChange={(e) => setUser(e.target.value)}
+            autoComplete="username"
+          />
+          <input
+            className="w-full border rounded-xl px-4 py-3 outline-none"
+            placeholder="Contraseña"
+            type="password"
+            value={pass}
+            onChange={(e) => setPass(e.target.value)}
+            autoComplete="current-password"
+          />
+
+          <button
+            disabled={loading}
+            className="w-full rounded-xl bg-black text-white py-3 font-semibold hover:opacity-90 disabled:opacity-50"
+          >
+            {loading ? "Entrando..." : "Entrar"}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }

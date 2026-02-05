@@ -2,12 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { products as seedProducts } from "../../../data/products";
-import { useAdminAuth } from "../_auth";
+
 import { supabase } from "@/lib/supabase";
 
 export default function AdminProductsPage() {
-  const { logged, LoginForm } = useAdminAuth();
-
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -53,21 +51,16 @@ export default function AdminProductsPage() {
   };
 
   useEffect(() => {
-    if (!logged) return;
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [logged]);
+  }, []);
 
   const save = async () => {
     const payload = items.map(toDb);
 
     const res = await fetch("/api/admin/products", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-admin-user": "Marco138",
-        "x-admin-pass": "c4energia",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ items: payload }),
     });
 
@@ -125,44 +118,38 @@ export default function AdminProductsPage() {
 
     const res = await fetch("/api/admin/products", {
       method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        "x-admin-user": "Marco138",
-        "x-admin-pass": "c4energia",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
     });
 
-    const out = await res.json();
+    const out = await res.json().catch(() => ({}));
 
     if (!res.ok) {
       console.error("API delete error:", out);
-      alert("Error eliminando ❌ (mirá consola)");
+      alert(out?.error || "Error eliminando ❌ (mirá consola)");
       return;
     }
 
     setItems((prev) => prev.filter((x) => x.id !== id));
     window.dispatchEvent(new Event("c4laser-products-updated"));
   };
+
   //agrego el subir imagen
   const uploadImage = async (file) => {
     const form = new FormData();
     form.append("file", file);
+    form.append("bucket", "products"); // 👈 importante
 
     const res = await fetch("/api/admin/upload", {
       method: "POST",
-      headers: {
-        "x-admin-user": "Marco138",
-        "x-admin-pass": "c4energia",
-      },
-      body: form,
+      body: form, // 👈 sin headers de content-type
     });
 
-    const out = await res.json();
+    const out = await res.json().catch(() => ({}));
 
     if (!res.ok) {
       console.error("Upload error:", out);
-      alert("Error subiendo imagen ❌ (mirá consola)");
+      alert(out?.error || "Error subiendo imagen ❌");
       return null;
     }
 
@@ -198,8 +185,6 @@ export default function AdminProductsPage() {
     await load();
     window.dispatchEvent(new Event("c4laser-products-updated"));
   };
-
-  if (!logged) return <LoginForm />;
 
   return (
     <div className="text-black">
@@ -301,13 +286,14 @@ export default function AdminProductsPage() {
                           type="file"
                           accept="image/png,image/jpeg,image/webp"
                           onChange={async (e) => {
-                            const file = e.target.files?.[0];
+                            const input = e.currentTarget;
+                            const file = input.files?.[0];
                             if (!file) return;
 
                             const url = await uploadImage(file);
                             if (url) update(it.id, { imageUrl: url });
 
-                            e.currentTarget.value = "";
+                            input.value = "";
                           }}
                         />
 

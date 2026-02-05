@@ -2,10 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { useAdminAuth } from "../_auth";
 
 export default function AdminBannersPage() {
-  const { logged, LoginForm } = useAdminAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -28,10 +26,9 @@ export default function AdminBannersPage() {
   };
 
   useEffect(() => {
-    if (!logged) return;
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [logged]);
+  }, []);
 
   const uploadBanner = async (file) => {
     const form = new FormData();
@@ -40,16 +37,19 @@ export default function AdminBannersPage() {
 
     const res = await fetch("/api/admin/upload", {
       method: "POST",
-      headers: {
-        "x-admin-user": "Marco138",
-        "x-admin-pass": "c4energia",
-      },
       body: form,
     });
 
-    const out = await res.json();
+    
 
-    const url = out?.url || out?.publicUrl || out?.public_url;
+    const out = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      console.error("Upload error:", out);
+      alert(out?.error || "Error subiendo imagen ❌");
+      return null;
+    }
+
+    const url = out?.url;
     if (!url) {
       console.error("Upload response sin URL:", out);
       alert("Subió el archivo pero no recibí la URL. Revisá /api/admin/upload");
@@ -57,7 +57,6 @@ export default function AdminBannersPage() {
     }
     return url;
   };
-
   const add = () => {
     const id = globalThis.crypto?.randomUUID?.() || `banner-${Date.now()}`;
     setItems((prev) => [
@@ -78,22 +77,19 @@ export default function AdminBannersPage() {
   };
 
   const save = async () => {
-    const res = await fetch("/api/admin/banners", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-admin-user": "Marco138",
-        "x-admin-pass": "c4energia",
-      },
-      body: JSON.stringify({ items }),
-    });
     const invalid = items.find((b) => !b.image_url);
     if (invalid) {
       alert("Hay banners sin imagen. Subí la imagen o eliminá ese banner.");
       return;
     }
 
-    const out = await res.json();
+    const res = await fetch("/api/admin/banners", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items }),
+    });
+
+    const out = await res.json().catch(() => ({}));
     if (!res.ok) {
       console.error("Save error:", out);
       alert("Error guardando ❌ (mirá consola)");
@@ -102,7 +98,6 @@ export default function AdminBannersPage() {
 
     alert("Guardado ✅");
     window.dispatchEvent(new Event("c4laser-banners-updated"));
-
     await load();
   };
 
@@ -111,15 +106,11 @@ export default function AdminBannersPage() {
 
     const res = await fetch("/api/admin/banners", {
       method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        "x-admin-user": "Marco138",
-        "x-admin-pass": "c4energia",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
     });
 
-    const out = await res.json();
+    const out = await res.json().catch(() => ({}));
     if (!res.ok) {
       console.error("Delete error:", out);
       alert("Error eliminando ❌ (mirá consola)");
@@ -127,9 +118,8 @@ export default function AdminBannersPage() {
     }
 
     setItems((prev) => prev.filter((x) => x.id !== id));
+    window.dispatchEvent(new Event("c4laser-banners-updated"));
   };
-
-  if (!logged) return <LoginForm />;
 
   return (
     <div className="text-black">

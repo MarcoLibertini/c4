@@ -1,30 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
-import useAdminSession from "./_session";
+import { usePathname } from "next/navigation";
 
 export default function AdminLayout({ children }) {
-  const router = useRouter();
   const pathname = usePathname();
-  const { ready, logged, logout } = useAdminSession();
+  const isLogin = pathname === "/admin/login";
 
-  useEffect(() => {
-    if (!ready) return;
-
-    // Si no está logueado, lo único permitido es /admin/login
-    if (!logged && pathname !== "/admin/login") {
-      router.replace("/admin/login");
-    }
-
-    // Si está logueado y entra a /admin/login, lo mando a products
-    if (logged && pathname === "/admin/login") {
-      router.replace("/admin/products");
-    }
-  }, [ready, logged, pathname, router]);
-
-  if (!ready) return null;
+  const doLogout = async () => {
+    await fetch("/api/admin/logout", { method: "POST" });
+    window.location.href = "/admin/login"; // ✅ hard reload
+  };
 
   return (
     <div className="min-h-screen bg-white text-black">
@@ -44,12 +30,9 @@ export default function AdminLayout({ children }) {
               ← Volver a Home
             </Link>
 
-            {logged && (
+            {!isLogin && (
               <button
-                onClick={() => {
-                  logout();
-                  router.replace("/admin/login");
-                }}
+                onClick={doLogout}
                 className="rounded-xl bg-black text-white px-4 py-3 text-sm font-semibold hover:opacity-90"
               >
                 Cerrar sesión
@@ -59,11 +42,9 @@ export default function AdminLayout({ children }) {
         </div>
 
         {/* Contenido */}
-        {!logged ? (
-          // Login sin sidebar
+        {isLogin ? (
           <div className="mt-6">{children}</div>
         ) : (
-          // Panel con sidebar
           <div className="mt-6 grid grid-cols-1 md:grid-cols-[240px_1fr] gap-6">
             <aside className="border rounded-2xl p-4 h-fit">
               <div className="text-xs font-semibold text-black/60 mb-2">
@@ -72,15 +53,12 @@ export default function AdminLayout({ children }) {
 
               <nav className="space-y-1">
                 <SideLink href="/admin/products" label="Productos" />
-                <SideLink
-                  href="/admin/landing"
-                  label="Landing (header + footer)"
-                />
+                <SideLink href="/admin/landing" label="Landing (header + footer)" />
                 <SideLink href="/admin/banners" label="Carrusel/Banner" />
               </nav>
 
               <div className="mt-4 text-xs text-black/60">
-                Tip: luego migramos todo a Supabase.
+                Tip: ya estamos con Supabase + Storage ✅
               </div>
             </aside>
 
