@@ -1,21 +1,45 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
+import useAdminSession from "./_session";
 
 export default function AdminLayout({ children }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { ready, logged, logout, refresh } = useAdminSession();
+
   const isLogin = pathname === "/admin/login";
 
-  const doLogout = async () => {
-    await fetch("/api/admin/logout", { method: "POST" });
-    window.location.href = "/admin/login"; // ✅ hard reload
-  };
+  useEffect(() => {
+    if (!ready) return;
+
+    // si está en login y ya está logueado -> adentro
+    if (logged && isLogin) {
+      router.replace("/admin/products");
+      return;
+    }
+
+    // si no está logueado y no está en login -> afuera
+    if (!logged && !isLogin) {
+      router.replace("/admin/login");
+      return;
+    }
+  }, [ready, logged, isLogin, router]);
+
+  // opcional: cuando navegas dentro del admin, refrescá una vez
+  useEffect(() => {
+    if (!ready) return;
+    refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  if (!ready) return null;
 
   return (
     <div className="min-h-screen bg-white text-black">
       <div className="mx-auto max-w-6xl px-4 py-6">
-        {/* Top bar admin */}
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
             <h1 className="text-xl font-semibold">Admin C4 LASER</h1>
@@ -32,7 +56,7 @@ export default function AdminLayout({ children }) {
 
             {!isLogin && (
               <button
-                onClick={doLogout}
+                onClick={logout}
                 className="rounded-xl bg-black text-white px-4 py-3 text-sm font-semibold hover:opacity-90"
               >
                 Cerrar sesión
@@ -41,7 +65,6 @@ export default function AdminLayout({ children }) {
           </div>
         </div>
 
-        {/* Contenido */}
         {isLogin ? (
           <div className="mt-6">{children}</div>
         ) : (
@@ -58,7 +81,7 @@ export default function AdminLayout({ children }) {
               </nav>
 
               <div className="mt-4 text-xs text-black/60">
-                Tip: ya estamos con Supabase + Storage ✅
+                Tip: cookie + routes protegidas ✅
               </div>
             </aside>
 
