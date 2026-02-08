@@ -1,14 +1,17 @@
-// src/app/api/admin/upload/route.js
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { cookies } from "next/headers";
-import { getAdminToken, isValidAdminToken } from "@/lib/adminAuth";
+import { isAdminFromCookies } from "@/lib/adminAuth";
 
 export async function POST(req) {
   const cookieStore = await cookies();
-  const token = getAdminToken(cookieStore);
-  if (!isValidAdminToken(token)) {
+  if (!isAdminFromCookies(cookieStore)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const contentType = req.headers.get("content-type") || "";
+  if (!contentType.includes("multipart/form-data")) {
+    return NextResponse.json({ error: "Invalid content-type" }, { status: 400 });
   }
 
   const form = await req.formData();

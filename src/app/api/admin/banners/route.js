@@ -1,8 +1,7 @@
-// src/app/api/admin/banners/route.js
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { cookies } from "next/headers";
-import { getAdminToken, isValidAdminToken } from "@/lib/adminAuth";
+import { isAdminFromCookies } from "@/lib/adminAuth";
 
 function unauthorized() {
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -10,8 +9,7 @@ function unauthorized() {
 
 export async function POST(req) {
   const cookieStore = await cookies();
-  const token = getAdminToken(cookieStore);
-  if (!isValidAdminToken(token)) return unauthorized();
+  if (!isAdminFromCookies(cookieStore)) return unauthorized();
 
   const body = await req.json().catch(() => ({}));
   const items = Array.isArray(body?.items) ? body.items : [];
@@ -32,8 +30,7 @@ export async function POST(req) {
 
 export async function DELETE(req) {
   const cookieStore = await cookies();
-  const token = getAdminToken(cookieStore);
-  if (!isValidAdminToken(token)) return unauthorized();
+  if (!isAdminFromCookies(cookieStore)) return unauthorized();
 
   const body = await req.json().catch(() => ({}));
   const id = body?.id;

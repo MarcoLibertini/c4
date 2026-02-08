@@ -138,23 +138,22 @@ export default function AdminProductsPage() {
   const uploadImage = async (file) => {
     const form = new FormData();
     form.append("file", file);
-    form.append("bucket", "products"); // 👈 importante
-
+    form.append("bucket", "products");
+  
     const res = await fetch("/api/admin/upload", {
       method: "POST",
-      body: form, // 👈 sin headers de content-type
+      body: form,
     });
-
+  
     const out = await res.json().catch(() => ({}));
-
     if (!res.ok) {
       console.error("Upload error:", out);
       alert(out?.error || "Error subiendo imagen ❌");
       return null;
     }
-
     return out.url;
   };
+  
 
   const restoreBase = async () => {
     if (!confirm("¿Restaurar productos base? Esto reemplaza/crea por ID."))

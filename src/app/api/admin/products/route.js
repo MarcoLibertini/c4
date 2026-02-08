@@ -1,8 +1,7 @@
-// src/app/api/admin/products/route.js
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { cookies } from "next/headers";
-import { getAdminToken, isValidAdminToken } from "@/lib/adminAuth";
+import { isAdminFromCookies } from "@/lib/adminAuth";
 
 function unauthorized() {
   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -10,15 +9,12 @@ function unauthorized() {
 
 export async function POST(req) {
   const cookieStore = await cookies();
-  const token = getAdminToken(cookieStore);
-  if (!isValidAdminToken(token)) return unauthorized();
+  if (!isAdminFromCookies(cookieStore)) return unauthorized();
 
   const body = await req.json().catch(() => ({}));
   const items = Array.isArray(body?.items) ? body.items : [];
 
-  if (!items.length) {
-    return NextResponse.json({ ok: true, count: 0 });
-  }
+  if (!items.length) return NextResponse.json({ ok: true, count: 0 });
 
   const { error } = await supabaseAdmin
     .from("products")
@@ -36,15 +32,12 @@ export async function POST(req) {
 
 export async function DELETE(req) {
   const cookieStore = await cookies();
-  const token = getAdminToken(cookieStore);
-  if (!isValidAdminToken(token)) return unauthorized();
+  if (!isAdminFromCookies(cookieStore)) return unauthorized();
 
   const body = await req.json().catch(() => ({}));
   const id = body?.id;
 
-  if (!id) {
-    return NextResponse.json({ error: "Missing id" }, { status: 400 });
-  }
+  if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
   const { error } = await supabaseAdmin.from("products").delete().eq("id", id);
 

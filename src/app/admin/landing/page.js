@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import useLanding from "../../../data/useLanding";
 
 export default function AdminLandingPage() {
-  const { landing, save } = useLanding();
+  const { landing, save, loading } = useLanding();
   const [draft, setDraft] = useState(landing);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => setDraft(landing), [landing]);
 
@@ -176,21 +177,32 @@ export default function AdminLandingPage() {
         <div>
           <h2 className="text-2xl font-semibold">Landing</h2>
           <p className="text-sm text-black/70">
-            Textos, menú, cómo comprar, FAQ y footer.
+            {loading ? "Cargando desde Supabase..." : "Textos, menú, FAQ y footer."}
           </p>
         </div>
 
         <button
-          onClick={() => {
-            save(draft);
-            alert("Guardado ✅");
+          disabled={saving}
+          onClick={async () => {
+            if (saving) return;
+            setSaving(true);
+            try {
+              await save(draft);
+              alert("Guardado ✅ (Supabase)");
+            } catch (e) {
+              console.error(e);
+              alert(e?.message || "Error guardando ❌");
+            } finally {
+              setSaving(false);
+            }
           }}
-          className="rounded-xl bg-black text-white px-4 py-3 text-sm font-semibold hover:opacity-90"
+          className="rounded-xl bg-black text-white px-4 py-3 text-sm font-semibold hover:opacity-90 disabled:opacity-60"
         >
-          Guardar
+          {saving ? "Guardando..." : "Guardar"}
         </button>
       </div>
 
+      {/* ✅ Todo lo demás lo dejé igual */}
       <div className="mt-6 space-y-6">
         {/* TOP BAR */}
         <Box title="Barra superior (promo)">
@@ -368,8 +380,7 @@ export default function AdminLandingPage() {
               onChange={(e) => setContact({ mapEmbedUrl: e.target.value })}
             />
             <div className="mt-2 text-xs text-black/60">
-              Tip: buscá tu dirección en Google Maps → “Compartir” → “Insertar
-              un mapa” → copiá el link del iframe.
+              Tip: Google Maps → “Compartir” → “Insertar un mapa”.
             </div>
           </div>
 
@@ -416,66 +427,24 @@ export default function AdminLandingPage() {
         {/* FOOTER */}
         <Box title="Footer (marca + redes + dirección)">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <Field
-              label="Marca"
-              value={f.brand || ""}
-              onChange={(v) => setFooter({ brand: v })}
-            />
-            <Field
-              label="Tagline"
-              value={f.tagline || ""}
-              onChange={(v) => setFooter({ tagline: v })}
-            />
-            <Field
-              label="Dirección"
-              value={f.address || ""}
-              onChange={(v) => setFooter({ address: v })}
-            />
-            <Field
-              label="WhatsApp (549...)"
-              value={f.whatsapp || ""}
-              onChange={(v) => setFooter({ whatsapp: v })}
-            />
-            <Field
-              label="Email"
-              value={f.email || ""}
-              onChange={(v) => setFooter({ email: v })}
-            />
-            <Field
-              label="Copyright (usa {year})"
-              value={f.copyright || ""}
-              onChange={(v) => setFooter({ copyright: v })}
-            />
+            <Field label="Marca" value={f.brand || ""} onChange={(v) => setFooter({ brand: v })} />
+            <Field label="Tagline" value={f.tagline || ""} onChange={(v) => setFooter({ tagline: v })} />
+            <Field label="Dirección" value={f.address || ""} onChange={(v) => setFooter({ address: v })} />
+            <Field label="WhatsApp (549...)" value={f.whatsapp || ""} onChange={(v) => setFooter({ whatsapp: v })} />
+            <Field label="Email" value={f.email || ""} onChange={(v) => setFooter({ email: v })} />
+            <Field label="Copyright (usa {year})" value={f.copyright || ""} onChange={(v) => setFooter({ copyright: v })} />
           </div>
 
           <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-            <Field
-              label="Instagram URL"
-              value={s.instagram || ""}
-              onChange={(v) => setFooter({ socials: { ...s, instagram: v } })}
-            />
-            <Field
-              label="Facebook URL"
-              value={s.facebook || ""}
-              onChange={(v) => setFooter({ socials: { ...s, facebook: v } })}
-            />
-            <Field
-              label="Google Maps URL"
-              value={s.maps || ""}
-              onChange={(v) => setFooter({ socials: { ...s, maps: v } })}
-            />
-            <Field
-              label="Sitio web URL"
-              value={s.website || ""}
-              onChange={(v) => setFooter({ socials: { ...s, website: v } })}
-            />
+            <Field label="Instagram URL" value={s.instagram || ""} onChange={(v) => setFooter({ socials: { ...s, instagram: v } })} />
+            <Field label="Facebook URL" value={s.facebook || ""} onChange={(v) => setFooter({ socials: { ...s, facebook: v } })} />
+            <Field label="Google Maps URL" value={s.maps || ""} onChange={(v) => setFooter({ socials: { ...s, maps: v } })} />
+            <Field label="Sitio web URL" value={s.website || ""} onChange={(v) => setFooter({ socials: { ...s, website: v } })} />
           </div>
 
           <div className="mt-6 border rounded-xl p-3">
             <div className="flex items-center justify-between">
-              <div className="font-semibold text-sm">
-                Links rápidos del footer
-              </div>
+              <div className="font-semibold text-sm">Links rápidos del footer</div>
               <button
                 onClick={addFooterLink}
                 className="rounded-xl border px-4 py-2 text-sm font-semibold hover:bg-black/5"
@@ -488,16 +457,8 @@ export default function AdminLandingPage() {
               {(f.quickLinks || []).map((l, idx) => (
                 <div key={idx} className="border rounded-xl p-3">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <Field
-                      label="Texto"
-                      value={l.label || ""}
-                      onChange={(v) => updateFooterLink(idx, { label: v })}
-                    />
-                    <Field
-                      label="Href"
-                      value={l.href || ""}
-                      onChange={(v) => updateFooterLink(idx, { href: v })}
-                    />
+                    <Field label="Texto" value={l.label || ""} onChange={(v) => updateFooterLink(idx, { label: v })} />
+                    <Field label="Href" value={l.href || ""} onChange={(v) => updateFooterLink(idx, { href: v })} />
                   </div>
 
                   <button
