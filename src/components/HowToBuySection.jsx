@@ -1,12 +1,10 @@
 "use client";
 
-import useLanding from "../data/useLanding";
-
-export default function HowToBuySection() {
-  const { landing } = useLanding();
-
+export default function HowToBuySection({ landing }) {
   const title = landing?.howToBuy?.title || "Cómo comprar";
   const steps = Array.isArray(landing?.howToBuy?.steps) ? landing.howToBuy.steps : [];
+
+  if (!steps.length) return null;
 
   return (
     <section id="comprar" className="mx-auto max-w-6xl px-4 py-12 text-black">

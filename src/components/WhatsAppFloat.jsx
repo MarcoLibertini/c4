@@ -2,9 +2,12 @@
 
 import Image from "next/image";
 
-export default function WhatsAppFloat() {
-  const phone = "5492916439736";
+export default function WhatsAppFloat({ landing }) {
+  const phoneRaw = landing?.contact?.whatsapp || "";
+  const phone = String(phoneRaw).replace(/\D/g, "");
   const text = "Hola! Quiero hacer una consulta.";
+
+  if (!phone) return null;
 
   return (
     <a

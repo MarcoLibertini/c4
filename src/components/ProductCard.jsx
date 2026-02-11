@@ -97,7 +97,7 @@ export default function ProductCard({ product, onAdd }) {
         {/* CTA: siempre abajo */}
         <button
           onClick={() => onAdd?.(product)}
-          className="mt-auto w-full rounded-xl bg-black text-white py-3 text-sm font-semibold hover:opacity-90 transition"
+          className=" cursor-pointer mt-auto w-full rounded-xl bg-black text-white py-3 text-sm font-semibold hover:opacity-90 transition"
         >
           Agregar al carrito
         </button>

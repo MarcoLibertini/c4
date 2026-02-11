@@ -5,25 +5,35 @@ import { useRouter } from "next/navigation";
 import { Search, HelpCircle, User, ShoppingCart } from "lucide-react";
 import CartDrawer from "./CartDrawer";
 import { useCart } from "../store/cart";
-import useLanding from "../data/useLanding";
 import Image from "next/image";
 import Link from "next/link";
 
-export default function Header({ query, setQuery }) {
+export default function Header({ landing, query, setQuery }) {
   const router = useRouter();
   const [openCart, setOpenCart] = useState(false);
   const { count, hydrated } = useCart();
 
-  const { landing } = useLanding();
+  const topBarText =
+    landing?.topBarText ||
+    "3 y 6 CUOTAS SIN INTERÉS! 20% OFF TRANSFERENCIA - 3x2 y 4x3 etiquetas y dijes";
+
+  const menuLinks =
+    landing?.menuLinks?.length
+      ? landing.menuLinks
+      : [
+          { label: "Inicio", href: "#" },
+          { label: "Productos", href: "#productos" },
+          { label: "Contacto", href: "#contacto" },
+          { label: "Preguntas Frecuentes", href: "#faq" },
+          { label: "Catálogo de Materiales", href: "#materiales" },
+          { label: "Cómo Comprar", href: "#comprar" },
+        ];
 
   return (
     <header className="w-full">
-      {/* Barra superior (editable desde /admin/landing) */}
+      {/* Barra superior */}
       <div className="bg-black text-white text-xs py-2">
-        <div className="mx-auto max-w-6xl px-4 text-center">
-          {landing?.topBarText ||
-            "3 y 6 CUOTAS SIN INTERÉS! 20% OFF TRANSFERENCIA - 3x2 y 4x3 etiquetas y dijes"}
-        </div>
+        <div className="mx-auto max-w-6xl px-4 text-center">{topBarText}</div>
       </div>
 
       {/* Header principal */}
@@ -42,7 +52,7 @@ export default function Header({ query, setQuery }) {
             </div>
           </div>
 
-          {/* Logo (placeholder) */}
+          {/* Logo */}
           <Link href="/" className="flex items-center justify-center">
             <Image
               src="/logo-c4.svg"
@@ -86,20 +96,10 @@ export default function Header({ query, setQuery }) {
         </div>
       </div>
 
-      {/* Menú inferior (editable desde /admin/landing) */}
+      {/* Menú inferior */}
       <nav className="bg-white">
         <div className="mx-auto max-w-6xl px-4 py-4 flex gap-8 text-sm overflow-x-auto">
-          {(landing?.menuLinks?.length
-            ? landing.menuLinks
-            : [
-                { label: "Inicio", href: "#" },
-                { label: "Productos", href: "#productos" },
-                { label: "Contacto", href: "#contacto" },
-                { label: "Preguntas Frecuentes", href: "#faq" },
-                { label: "Catálogo de Materiales", href: "#materiales" },
-                { label: "Cómo Comprar", href: "#comprar" },
-              ]
-          ).map((l, idx) => (
+          {menuLinks.map((l, idx) => (
             <a
               key={idx}
               className="whitespace-nowrap hover:opacity-80 text-black"
@@ -111,7 +111,6 @@ export default function Header({ query, setQuery }) {
         </div>
       </nav>
 
-      {/* Drawer del carrito */}
       <CartDrawer open={openCart} onClose={() => setOpenCart(false)} />
     </header>
   );

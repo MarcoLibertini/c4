@@ -2,9 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { landingDefaults } from "./landingDefaults";
-import { supabase } from "@/lib/supabase";
 
-const SETTINGS_KEY = "landing";
 const LOCAL_FALLBACK_KEY = "c4laser_landing_v1";
 
 function mergeLanding(v) {
@@ -19,8 +17,7 @@ export default function useLanding() {
     try {
       const raw = localStorage.getItem(LOCAL_FALLBACK_KEY);
       if (!raw) return landingDefaults;
-      const parsed = JSON.parse(raw);
-      return mergeLanding(parsed);
+      return mergeLanding(JSON.parse(raw));
     } catch {
       return landingDefaults;
     }
@@ -29,40 +26,34 @@ export default function useLanding() {
   const load = async () => {
     setLoading(true);
 
-    // 1) intento Supabase (producción real)
-    const { data, error } = await supabase
-      .from("site_settings")
-      .select("value")
-      .eq("key", SETTINGS_KEY)
-      .maybeSingle();
+    try {
+      const res = await fetch("/api/admin/landing", { method: "GET" });
+      const out = await res.json().catch(() => ({}));
 
-    if (!error && data?.value) {
-      const next = mergeLanding(data.value);
-      setLanding(next);
+      if (res.ok && out?.landing) {
+        const next = mergeLanding(out.landing);
+        setLanding(next);
+        try {
+          localStorage.setItem(LOCAL_FALLBACK_KEY, JSON.stringify(next));
+        } catch {}
+        setLoading(false);
+        return;
+      }
 
-      // guardo fallback local por si un día falla supabase o estás offline
-      try {
-        localStorage.setItem(LOCAL_FALLBACK_KEY, JSON.stringify(next));
-      } catch {}
-
+      // si no está logueado / 401 / etc => fallback local
+      const fallback = loadFromLocal();
+      setLanding(fallback);
       setLoading(false);
-      return;
-    }
-
-    // 2) fallback localStorage (compat)
-    const fallback = loadFromLocal();
-    setLanding(fallback);
-    setLoading(false);
-
-    if (error) {
-      console.error("useLanding supabase error:", error);
+    } catch (e) {
+      console.error("useLanding load error:", e);
+      const fallback = loadFromLocal();
+      setLanding(fallback);
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     load();
-
-    // cuando el admin guarda, refrescamos
     const onUpdate = () => load();
     window.addEventListener("c4laser_landing_updated", onUpdate);
     return () => window.removeEventListener("c4laser_landing_updated", onUpdate);
@@ -79,7 +70,6 @@ export default function useLanding() {
         localStorage.setItem(LOCAL_FALLBACK_KEY, JSON.stringify(next));
       } catch {}
 
-      // guarda real (solo admin logueado)
       const res = await fetch("/api/admin/landing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

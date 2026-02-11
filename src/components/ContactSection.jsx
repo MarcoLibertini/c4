@@ -1,20 +1,19 @@
 "use client";
 
-import useLanding from "../data/useLanding";
-
-export default function ContactSection() {
-  const { landing } = useLanding();
-
+export default function ContactSection({ landing }) {
   const c = landing?.contact || {};
   const title = c.title || "Contacto";
   const subtitle = c.subtitle || "";
   const address = c.address || "";
-  const whatsapp = c.whatsapp || "5492916439736";
+  const whatsapp = c.whatsapp || "";
   const mapEmbedUrl = c.mapEmbedUrl || "";
   const hours = Array.isArray(c.hours) ? c.hours : [];
 
   const waText = "Hola! Quiero hacer una consulta.";
-  const waLink = `https://wa.me/${whatsapp}?text=${encodeURIComponent(waText)}`;
+  const waPhone = String(whatsapp).replace(/\D/g, "");
+  const waLink = waPhone
+    ? `https://wa.me/${waPhone}?text=${encodeURIComponent(waText)}`
+    : null;
 
   return (
     <section id="contacto" className="mx-auto max-w-6xl px-4 py-12 text-black">
@@ -48,14 +47,16 @@ export default function ContactSection() {
               </div>
             ) : null}
 
-            <a
-              href={waLink}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-3 inline-flex rounded-xl bg-black text-white px-4 py-3 text-sm font-semibold hover:opacity-90"
-            >
-              Consultar por WhatsApp
-            </a>
+            {waLink ? (
+              <a
+                href={waLink}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-flex rounded-xl bg-black text-white px-4 py-3 text-sm font-semibold hover:opacity-90"
+              >
+                Consultar por WhatsApp
+              </a>
+            ) : null}
           </div>
         </div>
 

@@ -1,14 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import useLanding from "../data/useLanding";
+import { useMemo, useState } from "react";
 
-export default function FAQSection() {
-  const { landing } = useLanding();
-
+export default function FAQSection({ landing }) {
   const title = landing?.faq?.title || "Preguntas frecuentes";
-  const items = Array.isArray(landing?.faq?.items) ? landing.faq.items : [];
+  const items = useMemo(
+    () => (Array.isArray(landing?.faq?.items) ? landing.faq.items : []),
+    [landing]
+  );
+
   const [openIdx, setOpenIdx] = useState(0);
+
+  if (!items.length) return null;
 
   return (
     <section id="faq" className="mx-auto max-w-6xl px-4 py-12 text-black">
@@ -33,11 +36,7 @@ export default function FAQSection() {
                 <span className="text-black/60 text-sm">{open ? "−" : "+"}</span>
               </button>
 
-              {open && (
-                <div className="px-4 pb-4 text-sm text-black/70">
-                  {it.a}
-                </div>
-              )}
+              {open && <div className="px-4 pb-4 text-sm text-black/70">{it.a}</div>}
             </div>
           );
         })}

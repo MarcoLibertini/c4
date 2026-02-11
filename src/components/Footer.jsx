@@ -1,23 +1,20 @@
 "use client";
 
-import useLanding from "../data/useLanding";
-
-export default function Footer() {
-  const { landing } = useLanding();
-
+export default function Footer({ landing }) {
   const f = landing?.footer || {};
   const year = new Date().getFullYear();
 
   const brand = f.brand || "C4 LASER";
   const tagline = f.tagline || "Grabado y corte láser";
   const address = f.address || "";
-  const whatsapp = f.whatsapp || "5492916439736";
+  const whatsapp = f.whatsapp || "";
   const email = f.email || "";
 
   const quickLinks = Array.isArray(f.quickLinks) ? f.quickLinks : [];
   const socials = f.socials || {};
 
-  const waLink = `https://wa.me/${whatsapp}`;
+  const waLink = whatsapp ? `https://wa.me/${String(whatsapp).replace(/\D/g, "")}` : null;
+
   const copyright =
     (f.copyright || "© {year} C4 LASER. Todos los derechos reservados.").replace(
       "{year}",
@@ -33,14 +30,14 @@ export default function Footer() {
             <div className="text-lg font-semibold">{brand}</div>
             <div className="mt-1 text-sm text-black/70">{tagline}</div>
 
-            {address ? (
-              <div className="mt-4 text-sm text-black/70">{address}</div>
-            ) : null}
+            {address ? <div className="mt-4 text-sm text-black/70">{address}</div> : null}
 
             <div className="mt-4 space-y-2 text-sm">
-              <a className="underline font-semibold" href={waLink} target="_blank" rel="noreferrer">
-                WhatsApp
-              </a>
+              {waLink ? (
+                <a className="underline font-semibold" href={waLink} target="_blank" rel="noreferrer">
+                  WhatsApp
+                </a>
+              ) : null}
 
               {email ? (
                 <div>
@@ -105,14 +102,16 @@ export default function Footer() {
             <div className="mt-3 text-sm text-black/70">
               Respondemos por WhatsApp para cotizaciones, diseños y encargos.
             </div>
-            <a
-              href={waLink}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-4 inline-flex items-center justify-center rounded-xl bg-black text-white px-4 py-3 text-sm font-semibold hover:opacity-90"
-            >
-              Escribinos
-            </a>
+            {waLink ? (
+              <a
+                href={waLink}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-4 inline-flex items-center justify-center rounded-xl bg-black text-white px-4 py-3 text-sm font-semibold hover:opacity-90"
+              >
+                Escribinos
+              </a>
+            ) : null}
           </div>
         </div>
 
